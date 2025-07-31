@@ -1,17 +1,17 @@
-          IDENTIFICATION DIVISION.
+  IDENTIFICATION DIVISION.
             PROGRAM-ID. EXAMP-PGM1.
-          ENVIRONMENT DIVISION.
-          CONFIGURATION SECTION.
-          INPUT-OUTPUT SECTION.
-          FILE-CONTROL.
+       ENVIRONMENT DIVISION.
+       CONFIGURATION SECTION.
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
             SELECT IN-PAYROLL
             ASSIGN TO UT-S-INPUTF.
             SELECT OUT-REPORT
             ASSIGN TO UT-S-OUTRPT.
             SELECT SORT-WRKFILE
             ASSIGN TO UR-S-WORK.
-          DATA DIVISION.
-          FILE SECTION.
+       DATA DIVISION.
+       FILE SECTION.
           FD  IN-PAYROLL
               RECORDING MODE IS F
               LABEL RECORDS ARE OMITTED
@@ -44,30 +44,60 @@
               02 SD-SALARY PIC 9(4).
               02 FILLER PIC X(43).
       *
-          WORKING-STORAGE SECTION.
-              01 WS-EMPLOYEE.
-                02 WS-ID PIC 9(10).
-                02 WS-NAME PIC X(23).
-                02 WS-SALARY PIC 9(4).
-                02 FILLER PIC X(43).
+       WORKING-STORAGE SECTION.
+          01 WS-HIGHEST-EMPLOYEE.
+             02 WS-HIGH-ID PIC 9(10).
+             02 WS-HIGH-NAME PIC X(23).
+             02 WS-HIGH-SALARY PIC 9(4) VALUE ZEROS.
+             02 FILLER PIC X(43).
+          01 WS-EMPLOYEE.
+             02 WS-ID PIC 9(10).
+             02 WS-NAME PIC X(23).
+             02 WS-SALARY PIC 9(4).
+             02 FILLER PIC X(43).
           01 WS-EOF PIC A VALUE 'N'.
+          01 WS-IS-MARRIED PIC A.
+             88 WS-M VALUE 'M'.
+             88 WS-S VALUE 'S'.
+          01 PROG-TAX-RATE PIC 9(4).
+             88 WS-10-PERCENT VALUE 0001 THRU 1100.
+             88 WS-22-PERCENT VALUE 1101 THRU 4472.
       *
-          PROCEDURE DIVISION.
+       PROCEDURE DIVISION.
           MAIN.
            OPEN INPUT IN-PAYROLL
+
            PERFORM READ-INPUT UNTIL WS-EOF = 'Y'
            CLOSE IN-PAYROLL
            PERFORM SORT-RECORDS
+           OPEN INPUT OUT-REPORT
+           MOVE 'N' TO WS-EOF
+           PERFORM FIND-HPE THRU FIND-HPE-EXIT UNTIL WS-EOF = 'Y'
+           CLOSE OUT-REPORT
+           DISPLAY 'THE HIGHEST PAID EMPLOYEE IS: ' WS-HIGH-NAME
+           DISPLAY 'THEIR SALARY IS: '  WS-HIGH-SALARY
            STOP RUN.
-      *
-          SORT-RECORDS.
+
+       SORT-RECORDS.
            SORT SORT-WRKFILE
              ON ASCENDING KEY SD-NAME
              USING IN-PAYROLL GIVING OUT-REPORT.
-      *
-          READ-INPUT.
+           SORT SORT-WRKFILE
+             ON DESCENDING KEY SD-SALARY
+             USING IN-PAYROLL GIVING OUT-REPORT.
+
+       READ-INPUT.
            READ IN-PAYROLL
-           AT END MOVE 'Y' TO WS-EOF.
+              AT END MOVE 'Y' TO WS-EOF.
            MOVE RECORDS-IN TO WS-EMPLOYEE
            DISPLAY WS-EMPLOYEE
-           MOVE ZEROS TO RECORDS-IN.
+           MOVE SPACES TO RECORDS-IN.
+
+       FIND-HPE.
+           READ OUT-REPORT
+              AT END MOVE 'Y' TO WS-EOF.
+           MOVE PAYROLL-REPORT TO WS-EMPLOYEE
+           IF WS-SALARY > WS-HIGH-SALARY
+             MOVE WS-EMPLOYEE TO WS-HIGHEST-EMPLOYEE.
+       FIND-HPE-EXIT.
+           EXIT.
